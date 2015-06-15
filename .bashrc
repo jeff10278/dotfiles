@@ -170,6 +170,9 @@ _isroot=false
       alias pacind='pacman -S --asdeps'     # Install given package(s) as dependencies of another package
       alias pacclean="pacman -Sc"           # Delete all not currently installed package files
       alias pacmake="makepkg -fcsi"         # Make package from PKGBUILD file in current directory
+      # '[r]emove [o]rphans' - recursively remove ALL orphaned packages
+      alias pacro="/usr/bin/pacman -Qtdq > /dev/null && sudo /usr/bin/pacman -Rns \$(/usr/bin/pacman -Qtdq | sed -e ':a;N;\$!ba;s/\n/ /g')"
+      alias reflect="sudo reflector --verbose --country 'United States' -l 200 -p http --sort rate --save /etc/pacman.d/mirrorlist"
     fi
   #}}}
   # MULTIMEDIA {{{
