@@ -628,3 +628,5 @@ _isroot=false
     fi
   #}}}
 #}}}
+export PATH="$(ruby -e 'print Gem.user_dir')/bin:$PATH"
+export PATH=~/.npm-global/bin:$PATH
