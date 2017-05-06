@@ -1,3 +1,5 @@
+" vim-bootstrap 8624ab1
+
 "*****************************************************************************
 "" Vim-PLug core
 "*****************************************************************************
@@ -7,7 +9,7 @@ endif
 
 let vimplug_exists=expand('~/.vim/autoload/plug.vim')
 
-let g:vim_bootstrap_langs = "go,html,javascript,lua,php,python,ruby"
+let g:vim_bootstrap_langs = "html,javascript,php,ruby"
 let g:vim_bootstrap_editor = "vim"				" nvim or vim
 
 if !filereadable(vimplug_exists)
@@ -29,7 +31,6 @@ Plug 'scrooloose/nerdtree'
 Plug 'jistr/vim-nerdtree-tabs'
 Plug 'tpope/vim-commentary'
 Plug 'tpope/vim-fugitive'
-Plug 'ctrlpvim/ctrlp.vim'
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'airblade/vim-gitgutter'
@@ -42,7 +43,12 @@ Plug 'scrooloose/syntastic'
 Plug 'Yggdroot/indentLine'
 Plug 'avelino/vim-bootstrap-updater'
 Plug 'sheerun/vim-polyglot'
-
+if isdirectory('/usr/local/opt/fzf')
+  Plug '/usr/local/opt/fzf' | Plug 'junegunn/fzf.vim'
+else
+  Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --bin' }
+  Plug 'junegunn/fzf.vim'
+endif
 let g:make = 'gmake'
 if exists('make')
         let g:make = 'make'
@@ -60,7 +66,6 @@ endif
 if v:version >= 704
   "" Snippets
   Plug 'SirVer/ultisnips'
-  Plug 'FelikZ/ctrlp-py-matcher'
 endif
 
 Plug 'honza/vim-snippets'
@@ -71,11 +76,6 @@ Plug 'tomasr/molokai'
 "*****************************************************************************
 "" Custom bundles
 "*****************************************************************************
-
-" go
-"" Go Lang Bundle
-Plug 'fatih/vim-go', {'do': ':GoInstallBinaries'}
-
 
 " html
 "" HTML Bundle
@@ -90,20 +90,9 @@ Plug 'mattn/emmet-vim'
 Plug 'jelera/vim-javascript-syntax'
 
 
-" lua
-"" Lua Bundle
-Plug 'xolox/vim-lua-ftplugin'
-Plug 'xolox/vim-lua-inspect'
-
-
 " php
 "" PHP Bundle
 Plug 'arnaud-lb/vim-php-namespace'
-
-
-" python
-"" Python Bundle
-Plug 'davidhalter/jedi-vim'
 
 
 " ruby
@@ -112,6 +101,7 @@ Plug 'tpope/vim-rake'
 Plug 'tpope/vim-projectionist'
 Plug 'thoughtbot/vim-rspec'
 Plug 'ecomba/vim-ruby-refactoring'
+Plug 'vim-scripts/matchit.zip'
 
 
 "*****************************************************************************
@@ -166,7 +156,12 @@ set noswapfile
 
 set fileformats=unix,dos,mac
 set showcmd
-set shell=/bin/sh
+
+if exists('$SHELL')
+    set shell=$SHELL
+else
+    set shell=/bin/sh
+endif
 
 " session management
 let g:session_directory = "~/.vim/session"
@@ -379,25 +374,27 @@ noremap <Leader>e :e <C-R>=expand("%:p:h") . "/" <CR>
 "" Opens a tab edit command with the path of the currently edited file filled
 noremap <Leader>te :tabe <C-R>=expand("%:p:h") . "/" <CR>
 
-"" ctrlp.vim
+"" fzf.vim
 set wildmode=list:longest,list:full
 set wildignore+=*.o,*.obj,.git,*.rbc,*.pyc,__pycache__
-let g:ctrlp_custom_ignore = '\v[\/](node_modules|target|dist)|(\.(swp|tox|ico|git|hg|svn))$'
-let g:ctrlp_user_command = "find %s -type f | grep -Ev '"+ g:ctrlp_custom_ignore +"'"
-let g:ctrlp_use_caching = 1
+let $FZF_DEFAULT_COMMAND =  "find * -path '*/\.*' -prune -o -path 'node_modules/**' -prune -o -path 'target/**' -prune -o -path 'dist/**' -prune -o  -type f -print -o -type l -print 2> /dev/null"
 
 " The Silver Searcher
 if executable('ag')
+  let $FZF_DEFAULT_COMMAND = 'ag --hidden --ignore .git -g ""'
   set grepprg=ag\ --nogroup\ --nocolor
-  let g:ctrlp_user_command = 'ag %s -l --nocolor -g ""'
-  let g:ctrlp_use_caching = 0
+endif
+
+" ripgrep
+if executable('rg')
+  let $FZF_DEFAULT_COMMAND = 'rg --files --hidden --follow --glob "!.git/*"'
+  set grepprg=rg\ --vimgrep
+  command! -bang -nargs=* Find call fzf#vim#grep('rg --column --line-number --no-heading --fixed-strings --ignore-case --hidden --follow --glob "!.git/*" --color "always" '.shellescape(<q-args>).'| tr -d "\017"', 1, <bang>0)
 endif
 
 cnoremap <C-P> <C-R>=expand("%:p:h") . "/" <CR>
-noremap <leader>b :CtrlPBuffer<CR>
-let g:ctrlp_map = '<leader>e'
-let g:ctrlp_open_new_file = 'r'
-let g:ctrlp_cache_dir = $HOME . '/.cache/ctrlp'
+nnoremap <silent> <leader>b :Buffers<CR>
+nnoremap <silent> <leader>e :FZF -m<CR>
 
 " snippets
 let g:UltiSnipsExpandTrigger="<tab>"
@@ -472,81 +469,6 @@ nnoremap <Leader>o :.Gbrowse<CR>
 "" Custom configs
 "*****************************************************************************
 
-" go
-let g:tagbar_type_go = {
-    \ 'ctagstype' : 'go',
-    \ 'kinds'     : [  'p:package', 'i:imports:1', 'c:constants', 'v:variables',
-        \ 't:types',  'n:interfaces', 'w:fields', 'e:embedded', 'm:methods',
-        \ 'r:constructor', 'f:functions' ],
-    \ 'sro' : '.',
-    \ 'kind2scope' : { 't' : 'ctype', 'n' : 'ntype' },
-    \ 'scope2kind' : { 'ctype' : 't', 'ntype' : 'n' },
-    \ 'ctagsbin'  : 'gotags',
-    \ 'ctagsargs' : '-sort -silent'
-    \ }
-
-" vim-go
-" run :GoBuild or :GoTestCompile based on the go file
-function! s:build_go_files()
-  let l:file = expand('%')
-  if l:file =~# '^\f\+_test\.go$'
-    call go#cmd#Test(0, 1)
-  elseif l:file =~# '^\f\+\.go$'
-    call go#cmd#Build(0)
-  endif
-endfunction
-
-let g:go_list_type = "quickfix"
-let g:go_fmt_command = "goimports"
-let g:go_fmt_fail_silently = 1
-let g:syntastic_go_checkers = ['golint', 'govet', 'errcheck']
-let g:syntastic_mode_map = { 'mode': 'active', 'passive_filetypes': ['go'] }
-
-let g:go_highlight_types = 1
-let g:go_highlight_fields = 1
-let g:go_highlight_functions = 1
-let g:go_highlight_methods = 1
-let g:go_highlight_operators = 1
-let g:go_highlight_build_constraints = 1
-let g:go_highlight_generate_tags = 1
-let g:go_highlight_space_tab_error = 0
-let g:go_highlight_array_whitespace_error = 0
-let g:go_highlight_trailing_whitespace_error = 0
-let g:go_highlight_extra_types = 0
-
-autocmd BufNewFile,BufRead *.go setlocal noexpandtab tabstop=4 shiftwidth=4
-
-augroup completion_preview_close
-  autocmd!
-  if v:version > 703 || v:version == 703 && has('patch598')
-    autocmd CompleteDone * if !&previewwindow && &completeopt =~ 'preview' | silent! pclose | endif
-  endif
-augroup END
-
-augroup go
-
-  au!
-  au Filetype go command! -bang A call go#alternate#Switch(<bang>0, 'edit')
-  au Filetype go command! -bang AV call go#alternate#Switch(<bang>0, 'vsplit')
-  au Filetype go command! -bang AS call go#alternate#Switch(<bang>0, 'split')
-  au Filetype go command! -bang AT call go#alternate#Switch(<bang>0, 'tabe')
-
-  au FileType go nmap <Leader>dd <Plug>(go-def-vertical)
-  au FileType go nmap <Leader>dv <Plug>(go-doc-vertical)
-  au FileType go nmap <Leader>db <Plug>(go-doc-browser)
-
-  au FileType go nmap <leader>r  <Plug>(go-run)
-  au FileType go nmap <leader>t  <Plug>(go-test)
-  au FileType go nmap <Leader>gt <Plug>(go-coverage-toggle)
-  au FileType go nmap <Leader>i <Plug>(go-info)
-  au FileType go nmap <silent> <Leader>l <Plug>(go-metalinter)
-  au FileType go nmap <C-g> :GoDecls<cr>
-  au FileType go imap <C-g> <esc>:<C-u>GoDecls<cr>
-  au FileType go nmap <leader>rb :<C-u>call <SID>build_go_files()<CR>
-
-augroup END
-
-
 " html
 " for html files, 2 spaces
 autocmd Filetype html setlocal ts=2 sw=2 expandtab
@@ -562,42 +484,7 @@ augroup vimrc-javascript
 augroup END
 
 
-" lua
-
-
 " php
-
-
-" python
-" vim-python
-augroup vimrc-python
-  autocmd!
-  autocmd FileType python setlocal expandtab shiftwidth=4 tabstop=8 colorcolumn=79
-      \ formatoptions+=croq softtabstop=4
-      \ cinwords=if,elif,else,for,while,try,except,finally,def,class,with
-augroup END
-
-" jedi-vim
-let g:jedi#popup_on_dot = 0
-let g:jedi#goto_assignments_command = "<leader>g"
-let g:jedi#goto_definitions_command = "<leader>d"
-let g:jedi#documentation_command = "K"
-let g:jedi#usages_command = "<leader>n"
-let g:jedi#rename_command = "<leader>r"
-let g:jedi#show_call_signatures = "0"
-let g:jedi#completions_command = "<C-Space>"
-let g:jedi#smart_auto_mappings = 0
-
-" syntastic
-let g:syntastic_python_checkers=['python', 'flake8']
-
-" vim-airline
-let g:airline#extensions#virtualenv#enabled = 1
-
-" Syntax highlight
-" Default highlight is better than polyglot
-let g:polyglot_disabled = ['python']
-let python_highlight_all = 1
 
 
 " ruby
